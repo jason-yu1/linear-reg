@@ -1,0 +1,120 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.8.8, pytest-6.2.3, py-1.10.0, pluggy-0.13.1 -- /Users/parrt/opt/anaconda3/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/parrt/grading/msds621/F21/linreg-jason-yu1
+plugins: anyio-2.2.0
+collecting ... collected 9 items
+
+test_regr.py::test_synthetic PASSED                                      [ 11%]
+test_regr.py::test_ridge_synthetic PASSED                                [ 22%]
+test_regr.py::test_boston PASSED                                         [ 33%]
+test_regr.py::test_boston_noise PASSED                                   [ 44%]
+test_regr.py::test_ridge_boston PASSED                                   [ 55%]
+test_regr.py::test_ridge_boston_noise PASSED                             [ 66%]
+test_class.py::test_synthetic PASSED                                     [ 77%]
+test_class.py::test_wine FAILED                                          [ 88%]
+test_class.py::test_iris PASSED                                          [100%]
+
+=================================== FAILURES ===================================
+__________________________________ test_wine ___________________________________
+
+    def test_wine():
+        X, y = wine_data()
+    
+>       check(X, y, 2.25,
+              LogisticRegression621(max_iter=30_000, eta=1),
+              LogisticRegression(penalty='none', solver='lbfgs'),
+              accuracy=0.88)
+
+test_class.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+X = array([[ 1.452455  , -0.29441432,  0.30247764, ..., -0.11242761,
+         2.04002469,  0.782868  ],
+       [ 0.2890660...679, -1.27605426],
+       [-1.02115832,  2.66025935,  0.13356831, ..., -1.60017084,
+        -0.81207706, -0.59829008]])
+y = array([[0],
+       [0],
+       [0],
+       [0],
+       [0],
+       [0],
+       [0],
+       [0],
+       [0],
+       [0]...      [1],
+       [1],
+       [1],
+       [1],
+       [1],
+       [1],
+       [1],
+       [1],
+       [1],
+       [1]])
+mae = 2.25, model = <linreg.LogisticRegression621 object at 0x7f7eb89ceeb0>
+skmodel = LogisticRegression(penalty='none'), accuracy = 0.88
+
+    def check(X, y, mae, model, skmodel, accuracy=1.0):
+        normalize(X)
+        X_train, X_test, y_train, y_test = \
+            train_test_split(X, y, test_size=0.2, shuffle=True)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        correct = np.sum(y_test.flatten() == y_pred.flatten())
+        n = len(X_test)
+        print(f"Got {correct} / {n} correct = {(correct / n) * 100:.2f}%")
+    
+        estimated_B = model.B.reshape(-1)
+        # print(estimated_B)
+    
+        skmodel.fit(X_train, y_train.reshape(-1))
+    
+        if skmodel.coef_.ndim==2:
+            true_B = np.concatenate([skmodel.intercept_, skmodel.coef_[0]])
+        else:
+            true_B = np.concatenate([skmodel.intercept_, skmodel.coef_])
+        print("MAE of B", MAE(estimated_B, true_B))
+    
+        y_proba_estimated = model.predict_proba(X_test)
+        y_proba_true = skmodel.predict_proba(X_test)
+        print(f"Log loss {log_loss(y_test, y_proba_estimated)} vs sklearn {log_loss(y_test, y_proba_true)}")
+        if log_loss(y_test, y_proba_estimated) > log_loss(y_test, y_proba_true):
+            # Sometimes log loss is pretty far off despite accuracy being ok
+            # depending on validation set; these are really small data sets
+            assert np.abs(log_loss(y_test, y_proba_estimated) - log_loss(y_test, y_proba_true)) < 0.365
+    
+        r = pd.DataFrame()
+        r['estimated'] = estimated_B
+        r['true'] = true_B
+        print(r)
+    
+        assert (correct/n) >= accuracy
+>       assert MAE(estimated_B, true_B) < mae
+E       assert 2.492055631826176 < 2.25
+E        +  where 2.492055631826176 = MAE(array([ 1.22639466, -4.85804647, -2.35734669, -4.29427887,  4.40447491,\n       -1.01480663, -0.65713694, -1.20705637,  1.26358957,  1.43004708,\n       -1.53476907, -0.48277389, -2.42364586, -8.10644497]), array([  3.06175383,  -9.10293688,  -5.44812856,  -9.67825126,\n         8.35294318,  -0.5099032 ,  -1.11220766,  -1.52017713,\n         2.7566314 ,   3.31877879,  -0.81210281,  -0.93320879,\n        -4.63641787, -16.45101008]))
+
+test_class.py:68: AssertionError
+----------------------------- Captured stdout call -----------------------------
+Got 26 / 26 correct = 100.00%
+MAE of B 2.492055631826176
+Log loss 0.02167937663498246 vs sklearn 0.004587922517187612
+    estimated       true
+0    1.226395   3.061754
+1   -4.858046  -9.102937
+2   -2.357347  -5.448129
+3   -4.294279  -9.678251
+4    4.404475   8.352943
+5   -1.014807  -0.509903
+6   -0.657137  -1.112208
+7   -1.207056  -1.520177
+8    1.263590   2.756631
+9    1.430047   3.318779
+10  -1.534769  -0.812103
+11  -0.482774  -0.933209
+12  -2.423646  -4.636418
+13  -8.106445 -16.451010
+=========================== short test summary info ============================
+FAILED test_class.py::test_wine - assert 2.492055631826176 < 2.25
+========================= 1 failed, 8 passed in 9.22s ==========================
